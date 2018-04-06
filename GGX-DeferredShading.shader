@@ -1,6 +1,6 @@
 // Unity built-in shader source. Copyright (c) 2016 Unity Technologies. MIT license (see license.txt)
 
-Shader "Hidden/Maxwell-DeferredShading" {
+Shader "Hidden/GGX-DeferredShading" {
 Properties {
     _LightTexture0 ("", any) = "" {}
     _LightTextureB0 ("", 2D) = "" {}
@@ -45,25 +45,7 @@ float4 BRDF (float3 diffColor, float3 specColor, float oneMinusReflectivity, flo
     float perceptualRoughness = SmoothnessToPerceptualRoughness (smoothness);
     float3 floatDir = Unity_SafeNormalize (float3(light.dir) + viewDir);
 
-// NdotV should not be negative for visible pixels, but it can happen due to perspective projection and normal mapping
-// In this case normal should be modified to become valid (i.e facing camera) and not cause weird artifacts.
-// but this operation adds few ALU and users may not want it. Alternative is to simply take the abs of NdotV (less correct but works too).
-// Following define allow to control this. Set it to 0 if ALU is critical on your platform.
-// This correction is interesting for GGX with SmithJoint visibility function because artifacts are more visible in this case due to highlight edge of rough surface
-// Edit: Disable this code by default for now as it is not compatible with two sided lighting used in SpeedTree.
-#define UNITY_HANDLE_CORRECTLY_NEGATIVE_NDOTV 0
-
-#if UNITY_HANDLE_CORRECTLY_NEGATIVE_NDOTV
-    // The amount we shift the normal toward the view vector is defined by the dot product.
-    float shiftAmount = dot(normal, viewDir);
-    normal = lerp(normal + viewDir * (-shiftAmount + 1e-5f), normal, step(0,shiftAmount));
-    // A re-normalization should be applied here but as the shift is small we don't do it to save ALU.
-    //normal = normalize(normal);
-
-    float nv = dot(normal, viewDir); // TODO: this saturate should no be necessary here
-#else
-    float nv = abs(dot(normal, viewDir));    // This abs allow to limit artifact
-#endif
+    float nv = dot(normal, viewDir);    // This abs allow to limit artifact
 
     float nl = saturate(dot(normal, light.dir));
     float nh = saturate(dot(normal, floatDir));
@@ -104,8 +86,7 @@ float4 BRDF (float3 diffColor, float3 specColor, float oneMinusReflectivity, flo
     // To provide true Lambert lighting, we need to be able to kill specular completely.
     specularTerm *= any(specColor) ? 1.0 : 0.0;
 
-     float3 color =   diffColor * (light.color * diffuseTerm)
-                    + specularTerm * light.color * FresnelTerm (specColor, lh);
+     float3 color =  (diffColor * diffuseTerm + specularTerm * light.color * FresnelTerm (specColor, lh)) * light.color;
 
     return float4(color, 1);
 }

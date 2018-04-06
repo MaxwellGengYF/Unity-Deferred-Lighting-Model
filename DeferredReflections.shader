@@ -1,6 +1,6 @@
 // Unity built-in shader source. Copyright (c) 2016 Unity Technologies. MIT license (see license.txt)
 
-Shader "Hidden/Maxwell-DeferredReflections" {
+Shader "Hidden/DeferredReflections" {
 Properties {
     _SrcBlend ("", Float) = 1
     _DstBlend ("", Float) = 1
@@ -44,19 +44,7 @@ float4 BRDF (float3 specColor, float oneMinusReflectivity, float smoothness,
 // Following define allow to control this. Set it to 0 if ALU is critical on your platform.
 // This correction is interesting for GGX with SmithJoint visibility function because artifacts are more visible in this case due to highlight edge of rough surface
 // Edit: Disable this code by default for now as it is not compatible with two sided lighting used in SpeedTree.
-#define UNITY_HANDLE_CORRECTLY_NEGATIVE_NDOTV 0
-
-#if UNITY_HANDLE_CORRECTLY_NEGATIVE_NDOTV
-    // The amount we shift the normal toward the view vector is defined by the dot product.
-    float shiftAmount = dot(normal, viewDir);
-    normal = lerp(normal + viewDir * (-shiftAmount + 1e-5f), normal, step(0,shiftAmount));
-    // A re-normalization should be applied here but as the shift is small we don't do it to save ALU.
-    //normal = normalize(normal);
-
-    float nv = dot(normal, viewDir); // TODO: this saturate should no be necessary here
-#else
-    float nv = abs(dot(normal, viewDir));    // This abs allow to limit artifact
-#endif
+    float nv = (dot(normal, viewDir));    // This abs allow to limit artifact
 
     //Diffuse = DisneyDiffuse(NoV, NoL, LoH, SmoothnessToPerceptualRoughness (smoothness)) * NoL;
     // Specular term
