@@ -84,9 +84,9 @@ float4 BRDF (float3 diffColor, float3 specColor, float oneMinusReflectivity, flo
 #endif
 
     // To provide true Lambert lighting, we need to be able to kill specular completely.
-    specularTerm *= any(specColor) ? 1.0 : 0.0;
+    specularTerm *= any(specColor);
 
-     float3 color =  (diffColor * diffuseTerm + specularTerm * light.color * FresnelTerm (specColor, lh)) * light.color;
+     float3 color =  (diffColor * diffuseTerm + specularTerm * FresnelTerm (specColor, lh)) * light.color;
 
     return float4(color, 1);
 }
